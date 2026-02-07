@@ -1,3 +1,13 @@
+// ## 5. `balloc` Module (Public Interface)
+// **Purpose**: The primary API used by applications to interact with the allocator.
+
+// * **Logic**:
+//     * **`bcreate`**: The only function that calls `mmap` (via `mmalloc`). It initializes the pool and populates the `freelist` with the largest possible block sizes.
+//     * **`balloc`**: Rounds requests to the nearest power of two within the range $[2^l, 2^u]$ and retrieves a block from the `freelist`.
+//     * **`bfree`**: Detects the block size using internal bitmaps and returns the memory to the `freelist` manager for merging.
+//     * **`bsize`**: Queries the `freelist` bitmaps to return the actual allocated size of a pointer.
+//     * **`bprint`**: Iterates through the free list heads to provide a textual representation of the allocator's current state.
+
 #include <stdlib.h>
 #include <stdio.h>
 #include "balloc.h"

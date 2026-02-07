@@ -1,3 +1,12 @@
+// ## 1. `bm` Module (General-Purpose Bitmap)
+// **Purpose**: Provides a dynamic, heap-allocated bitmap structure for tracking arbitrary bit-level states.
+
+// * **Logic**: 
+//     * Allocates a memory block where the first few bytes store metadata (the total bit count) followed by the raw bit data.
+//     * **`bmcreate`**: Uses `mmalloc` to obtain memory and initializes all bits to zero.
+//     * **`bmset / bmclr / bmtst`**: Provides safe access to individual bits. It includes bounds checking (`ok` function) to ensure indices do not exceed the bitmap size.
+//     * **`bmdelete`**: Frees the memory acquired during creation.
+
 #include <stdlib.h>
 #include <string.h>
 

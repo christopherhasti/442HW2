@@ -1,3 +1,14 @@
+// ## 3. `utils` Module (System Utilities)
+// **Purpose**: Handles low-level OS interaction and provides mathematical primitives for power-of-two calculations.
+
+// * **Memory Acquisition**:
+//     * **`mmalloc`**: The exclusive interface for requesting memory from the OS via `mmap`. It uses `PROT_READ|PROT_WRITE` and `MAP_ANONYMOUS` to provide a private, zero-initialized memory region.
+//     * **`mmfree`**: Releases the `mmap`'d region back to the kernel.
+// * **Math Helpers**:
+//     * **`size2e`**: Converts a byte size into the smallest exponent $e$ such that $2^e \ge \text{size}$.
+//     * **`e2size`**: Computes $2^e$ using bit-shifting.
+// * **Bitwise Primitives**: Provides the raw logic for toggling and testing bits within a byte array.
+
 #include <sys/mman.h>
 #include <stdlib.h>
 #include "utils.h"
