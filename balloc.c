@@ -4,50 +4,45 @@
 #include "freelist.h"
 #include "utils.h"
 
-struct balloc_struct {
+struct balloc_s {
     void *base;
     size_t size;
     int l, u;
     FreeList fl;
 };
 
-typedef struct balloc_struct *Pool;
-
 extern Balloc bcreate(unsigned int size, int l, int u) {
-    Pool p = malloc(sizeof(struct balloc_struct));
+    struct balloc_s *p = malloc(sizeof(struct balloc_s));
     if (!p) return NULL;
-
-    p->size = size;
-    p->l = l;
-    p->u = u;
-    p->base = mmalloc(size); // Obtained via mmap
     
+    // Acquire memory using mmap as required
+    p->base = mmalloc(size);
     if (p->base == (void *)-1) {
         free(p);
         return NULL;
     }
     
+    p->size = size;
+    p->l = l;
+    p->u = u;
     p->fl = freelistcreate(size, l, u);
     
-    // Initial memory setup: Split the pool into valid buddy blocks.
-    // We must ensure 'curr' stays within the allocated 'size'.
-    void *curr = p->base;
+    // Initialize the pool by freeing blocks of the largest possible sizes
+    char *curr = (char *)p->base;
     size_t remaining = size;
     for (int i = u; i >= l; i--) {
-        size_t bsize = e2size(i);
-        while (remaining >= bsize) {
-            // Add block to free list without triggering buddy merges 
-            // that might look outside our allocated mmap range.
+        size_t block_size = e2size(i);
+        while (remaining >= block_size) {
             freelistfree(p->fl, p->base, curr, i, l);
-            curr = (char*)curr + bsize;
-            remaining -= bsize;
+            curr += block_size;
+            remaining -= block_size;
         }
     }
     return (Balloc)p;
 }
 
 extern void bdelete(Balloc pool) {
-    Pool p = (Pool)pool;
+    struct balloc_s *p = (struct balloc_s *)pool;
     if (!p) return;
     freelistdelete(p->fl, p->l, p->u);
     mmfree(p->base, p->size);
@@ -55,16 +50,17 @@ extern void bdelete(Balloc pool) {
 }
 
 extern void *balloc(Balloc pool, unsigned int size) {
-    Pool p = (Pool)pool;
+    struct balloc_s *p = (struct balloc_s *)pool;
+    if (!p) return NULL;
     int e = size2e(size);
     if (e < p->l) e = p->l;
-    if (e > p->u) return NULL;
+    if (e > p->u) return NULL; // Fail if request exceeds 2^u
     return freelistalloc(p->fl, p->base, e, p->l);
 }
 
 extern void bfree(Balloc pool, void *mem) {
     if (!mem) return;
-    Pool p = (Pool)pool;
+    struct balloc_s *p = (struct balloc_s *)pool;
     int e = freelistsize(p->fl, p->base, mem, p->l, p->u);
     if (e != -1) {
         freelistfree(p->fl, p->base, mem, e, p->l);
@@ -72,13 +68,16 @@ extern void bfree(Balloc pool, void *mem) {
 }
 
 extern unsigned int bsize(Balloc pool, void *mem) {
-    Pool p = (Pool)pool;
+    if (!mem) return 0;
+    struct balloc_s *p = (struct balloc_s *)pool;
     int e = freelistsize(p->fl, p->base, mem, p->l, p->u);
-    return (e == -1) ? 0 : e2size(e);
+    return (e == -1) ? 0 : (unsigned int)e2size(e);
 }
 
 extern void bprint(Balloc pool) {
-    Pool p = (Pool)pool;
-    printf("Allocator Pool %p (Base: %p, Size: %zu)\n", (void*)p, p->base, p->size);
+    struct balloc_s *p = (struct balloc_s *)pool;
+    if (!p) return;
+    printf("Balloc Pool %p: base=%p size=%zu range=[2^%d, 2^%d]\n", 
+           (void*)p, p->base, p->size, p->l, p->u);
     freelistprint(p->fl, p->l, p->u);
 }
