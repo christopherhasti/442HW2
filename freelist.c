@@ -1,11 +1,10 @@
-// ## 4. `freelist` Module (Core Algorithm)
-// **Purpose**: Manages the lists of available memory blocks and implements the splitting and merging logic.
-
-// * **Logic**:
-//     * **Data Structures**: Maintains an array of list heads, one for each possible power-of-two order from $l$ to $u$.
-//     * **Management Data**: Management pointers (linked list pointers) are stored **at the beginning of free blocks** themselves, ensuring no extra memory is wasted in allocated blocks.
-//     * **Splitting (Allocation)**: If a requested order is empty, the module searches higher orders for a block. When a larger block is found, it is recursively split into "buddies" until the requested size is reached.
-//     * **Merging (Deallocation)**: When a block is freed, the module uses buddy bitmaps to check if the adjacent buddy is also free. If it is, the buddies are coalesced into a single larger block, and the process repeats for the next higher order.
+// Purpose: Manages the lists of available memory blocks and implements the splitting and merging logic.
+//
+// Logic:
+// - Data Structures: Maintains an array of list heads, one for each possible power-of-two order from l to u.
+// - Management Data: Management pointers (linked list pointers) are stored at the beginning of free blocks themselves, ensuring no extra memory is wasted in allocated blocks.
+// - Splitting (Allocation): If a requested order is empty, the module searches higher orders for a block. When a larger block is found, it is recursively split into "buddies" until the requested size is reached.
+// - Merging (Deallocation): When a block is freed, the module uses buddy bitmaps to check if the adjacent buddy is also free. If it is, the buddies are coalesced into a single larger block, and the process repeats for the next higher order.
 
 #include <stdlib.h>
 #include <stdio.h>
