@@ -1,4 +1,3 @@
-// ## 3. `utils` Module (System Utilities)
 // **Purpose**: Handles low-level OS interaction and provides mathematical primitives for power-of-two calculations.
 
 // * **Memory Acquisition**:

@@ -1,4 +1,3 @@
-// ## 1. `bm` Module (General-Purpose Bitmap)
 // **Purpose**: Provides a dynamic, heap-allocated bitmap structure for tracking arbitrary bit-level states.
 
 // * **Logic**: 

@@ -1,4 +1,3 @@
-// ## 5. `balloc` Module (Public Interface)
 // **Purpose**: The primary API used by applications to interact with the allocator.
 
 // * **Logic**:

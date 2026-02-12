@@ -52,7 +52,6 @@ extern void freelistdelete(FreeList f, int l, int u) {
 extern void *freelistalloc(FreeList f, void *base, int e, int l) {
     FL fl = (FL)f;
     int k = e;
-    // CRITICAL FIX: Ensure loop does not exceed the allocated heads array size (fl->u)
     while (k <= fl->u && fl->heads[k] == NULL) k++;
     if (k > fl->u || !fl->heads[k]) return NULL;
 
@@ -62,7 +61,6 @@ extern void *freelistalloc(FreeList f, void *base, int e, int l) {
     // Split blocks if we found a larger one
     while (k > e) {
         k--;
-        // CRITICAL FIX: Explicit cast to (char*) for correct pointer arithmetic
         void *buddy = (char*)block + e2size(k);
         *(void **)buddy = fl->heads[k];
         fl->heads[k] = buddy;

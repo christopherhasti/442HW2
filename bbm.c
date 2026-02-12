@@ -1,4 +1,3 @@
-// ## 2. `bbm` Module (Buddy System Bitmap)
 // **Purpose**: A specialized extension of the `bm` module designed specifically for Buddy System address arithmetic.
 
 // * **Logic**:
