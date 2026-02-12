@@ -8,27 +8,44 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h> // Required for memset
 #include "freelist.h"
 #include "bbm.h"
 #include "bm.h"
 #include "utils.h"
 
-// Added l and u to store the boundaries of this specific allocator
 typedef struct freelist_s {
-    void **heads;    // Heads of free lists for each order
-    BBM *bbms;       // Buddy bitmaps
-    BM *is_alloc;    // Track if a block is currently allocated
-    int l, u;        // Bounds
+    void **heads;
+    BBM *bbms;
+    BM *is_alloc;
+    int l, u;
 } *FL;
 
 extern FreeList freelistcreate(size_t size, int l, int u) {
-    FL f = malloc(sizeof(struct freelist_s));
+    // FIX: Use mmalloc instead of malloc
+    FL f = mmalloc(sizeof(struct freelist_s));
+    if (f == (void *)-1) return NULL;
+    memset(f, 0, sizeof(struct freelist_s));
+
     f->l = l;
     f->u = u;
-    f->heads = calloc(u + 1, sizeof(void *));
-    f->bbms = calloc(u + 1, sizeof(BBM));
-    f->is_alloc = calloc(u + 1, sizeof(BM));
+
+    // FIX: Use mmalloc and memset instead of calloc
+    size_t head_bytes = (u + 1) * sizeof(void *);
+    f->heads = mmalloc(head_bytes);
+    if (f->heads != (void *)-1) memset(f->heads, 0, head_bytes);
+
+    size_t bbm_bytes = (u + 1) * sizeof(BBM);
+    f->bbms = mmalloc(bbm_bytes);
+    if (f->bbms != (void *)-1) memset(f->bbms, 0, bbm_bytes);
+
+    size_t alloc_bytes = (u + 1) * sizeof(BM);
+    f->is_alloc = mmalloc(alloc_bytes);
+    if (f->is_alloc != (void *)-1) memset(f->is_alloc, 0, alloc_bytes);
     
+    if (f->heads == (void *)-1 || f->bbms == (void *)-1 || f->is_alloc == (void *)-1)
+        return NULL;
+
     for (int i = l; i <= u; i++) {
         f->bbms[i] = bbmcreate(size, i);
         f->is_alloc[i] = bmcreate(divup(size, e2size(i)));
@@ -38,14 +55,18 @@ extern FreeList freelistcreate(size_t size, int l, int u) {
 
 extern void freelistdelete(FreeList f, int l, int u) {
     FL fl = (FL)f;
+    if (!fl) return;
+
     for (int i = l; i <= u; i++) {
-        bbmdelete(fl->bbms[i]);
-        bmdelete(fl->is_alloc[i]);
+        if (fl->bbms[i]) bbmdelete(fl->bbms[i]);
+        if (fl->is_alloc[i]) bmdelete(fl->is_alloc[i]);
     }
-    free(fl->heads);
-    free(fl->bbms);
-    free(fl->is_alloc);
-    free(fl);
+    
+    // FIX: Release internal arrays and the struct using mmfree with sizes
+    mmfree(fl->heads, (u + 1) * sizeof(void *));
+    mmfree(fl->bbms, (u + 1) * sizeof(BBM));
+    mmfree(fl->is_alloc, (u + 1) * sizeof(BM));
+    mmfree(fl, sizeof(struct freelist_s));
 }
 
 extern void *freelistalloc(FreeList f, void *base, int e, int l) {

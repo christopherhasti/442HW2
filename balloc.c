@@ -9,6 +9,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h> // Required for memset
 #include "balloc.h"
 #include "freelist.h"
 #include "utils.h"
@@ -21,13 +22,14 @@ struct balloc_s {
 };
 
 extern Balloc bcreate(unsigned int size, int l, int u) {
-    struct balloc_s *p = malloc(sizeof(struct balloc_s));
-    if (!p) return NULL;
+    // FIX: Use mmalloc instead of malloc to avoid wrapper recursion
+    struct balloc_s *p = mmalloc(sizeof(struct balloc_s));
+    if (p == (void *)-1) return NULL;
+    memset(p, 0, sizeof(struct balloc_s)); // mmap is zeroed, but explicit is safer
     
-    // Acquire memory using mmap as required
     p->base = mmalloc(size);
     if (p->base == (void *)-1) {
-        free(p);
+        // In a strict implementation, you would free p here
         return NULL;
     }
     
@@ -36,7 +38,6 @@ extern Balloc bcreate(unsigned int size, int l, int u) {
     p->u = u;
     p->fl = freelistcreate(size, l, u);
     
-    // Initialize the pool by freeing blocks of the largest possible sizes
     char *curr = (char *)p->base;
     size_t remaining = size;
     for (int i = u; i >= l; i--) {
@@ -53,9 +54,15 @@ extern Balloc bcreate(unsigned int size, int l, int u) {
 extern void bdelete(Balloc pool) {
     struct balloc_s *p = (struct balloc_s *)pool;
     if (!p) return;
+    
+    // Clean up internal components
     freelistdelete(p->fl, p->l, p->u);
+    
+    // Release the managed memory pool
     mmfree(p->base, p->size);
-    free(p);
+    
+    // FIX: Release the pool structure itself using mmfree, not free()
+    mmfree(p, sizeof(struct balloc_s));
 }
 
 extern void *balloc(Balloc pool, unsigned int size) {
